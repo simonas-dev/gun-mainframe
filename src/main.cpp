@@ -1,36 +1,31 @@
 #include <Arduino.h>
-
-/*
-  LED Control
-
-  This example scans for Bluetooth® Low Energy peripherals until one with the advertised service
-  "19b10000-e8f2-537e-4f6c-d104768a1214" UUID is found. Once discovered and connected,
-  it will remotely control the Bluetooth® Low Energy peripheral's LED, when the button is pressed or released.
-
-  The circuit:
-  - Arduino MKR WiFi 1010, Arduino Uno WiFi Rev2 board, Arduino Nano 33 IoT,
-    Arduino Nano 33 BLE, or Arduino Nano 33 BLE Sense board.
-  - Button with pull-up resistor connected to pin 2.
-
-  You can use it with another board that is compatible with this library and the
-  Peripherals -> LED example.
-
-  This example code is in the public domain.
-*/
 #include <ArduinoBLE.h>
 
+#define IS_DEBUG true
+
+#define SERVER_UUID "5732d41c-e40b-4ec9-8e17-bc61ba185486"
+#define DATA_1_UUID "0609d529-b3a9-4d18-ac96-e09a02d14cdf"
+#define DATA_2_UUID "315fb3e2-9c5a-4784-8d30-8dddca5b9625"
+#define DATA_3_UUID "fd3d3f21-ab45-4f0d-b0c7-de1d392df061"
+
+#define DEFAULT_DATA_1 49
+#define DEFAULT_DATA_2 40
+#define DEFAULT_DATA_3 30
+
 void search();
-void connect();
+void connect(int attemptNum);
 void readData();
 
 void setup() {
-  Serial.begin(9600);
-  while (!Serial);
+    if (IS_DEBUG) {
+        Serial.begin(9600);
+        while (!Serial);
+    }
 
   // initialize the Bluetooth® Low Energy hardware
   BLE.begin();
 
-  Serial.println("Bluetooth® Low Energy Central - LED control");
+  Serial.println("Setup done.");
 }
 
 bool isConntected = false;
@@ -38,7 +33,10 @@ bool isFound = false;
 BLEDevice device;
 int connectionAttempts = 0;
 bool localDataWritten = false;
-int payload1 = 50;
+
+int payload1 = DEFAULT_DATA_1;
+int payload2 = DEFAULT_DATA_2;
+int payload3 = DEFAULT_DATA_3;
 
 void loop() {
     BLE.setDeviceName("Ballistic Mainframe");
@@ -46,30 +44,53 @@ void loop() {
     if (!isFound) {
         search();
     } else if (!isConntected) {
-        connect();
+        connect(1);
+        isConntected = device.connected();
     } else if (isConntected) {
         readData();
+        isConntected = device.connected();
+        if (!isConntected) {
+            isFound = false;
+        }
     }
-    isConntected = device.connected();
 }
 
 void readData() {
-    BLECharacteristic data1 = device.characteristic("0609d529-b3a9-4d18-ac96-e09a02d14cdf");
+    BLECharacteristic data1 = device.characteristic(DATA_1_UUID);
+    BLECharacteristic data2 = device.characteristic(DATA_2_UUID);
+    BLECharacteristic data3 = device.characteristic(DATA_3_UUID);
     if (!localDataWritten) {
-        Serial.print("Write: ");
-        Serial.print(payload1);
-        Serial.println();
-        data1.writeValue(payload1);    
+        Serial.println("Write local: ");
+        Serial.println(payload1);
+        data1.writeValue(payload1);
+        data2.writeValue(payload2);
+        data3.writeValue(payload3);
         localDataWritten = true;
     }
-    data1.readValue(payload1);
-    Serial.print("Read: ");
+    int temp;
+    data1.readValue(temp);
+    if (temp != 0) {
+        payload1 = temp;
+    }
+    data2.readValue(temp);
+    if (temp != 0) {
+        payload2 = temp;
+    }
+    data3.readValue(temp);
+    if (temp != 0) {
+        payload3 = temp;
+    }
+    Serial.print("Read remote: ");
     Serial.print(payload1);
+    Serial.print(' ');
+    Serial.print(payload2);
+    Serial.print(' ');
+    Serial.print(payload3);
     Serial.println();
-    sleep(1);
+    delay(32);
 }
 
-void connect() {
+void connect(int attemptNum) {
     Serial.println("Connecting ...");
     if (device.connect()) {
         Serial.println("Connected");
@@ -85,14 +106,18 @@ void connect() {
         Serial.println("Attributes discovered");
     } else {
         Serial.println("Attribute discovery failed!");
-        device.disconnect();
-        return;
+        if (attemptNum > 5) {
+            device.disconnect();
+            return;
+        } else {
+            connect(attemptNum + 1);
+        }
     }
     localDataWritten = false;
 }
 
 void search() {
-    BLE.scanForUuid("5732d41c-e40b-4ec9-8e17-bc61ba185486");
+    BLE.scanForUuid(SERVER_UUID);
     BLEDevice peripheral = BLE.available();
     if (peripheral) {
         // discovered a peripheral, print out address, local name, and advertised service
@@ -113,5 +138,5 @@ void search() {
     } else {
         Serial.println("Not found!");
     }
-    sleep(1);
+    delay(32);
 }
