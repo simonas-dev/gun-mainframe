@@ -1,7 +1,7 @@
 #include <Arduino.h>
 #include <ArduinoBLE.h>
 
-#define IS_DEBUG true
+#define IS_DEBUG false
 
 #define SERVER_UUID "5732d41c-e40b-4ec9-8e17-bc61ba185486"
 #define DATA_1_UUID "0609d529-b3a9-4d18-ac96-e09a02d14cdf"
