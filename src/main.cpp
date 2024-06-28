@@ -16,16 +16,21 @@ void search();
 void connect(int attemptNum);
 void readData();
 
+int ticknumber = 0;
+
 void setup() {
+    Serial.begin(9600);
+    Serial.println("Starting up");
+
     if (IS_DEBUG) {
-        Serial.begin(9600);
         while (!Serial);
     }
 
-  // initialize the Bluetooth® Low Energy hardware
-  BLE.begin();
 
-  Serial.println("Setup done.");
+    // initialize the Bluetooth® Low Energy hardware
+    BLE.begin();
+
+    Serial.println("Setup done.");
 }
 
 bool isConntected = false;
@@ -53,6 +58,10 @@ void loop() {
             isFound = false;
         }
     }
+    Serial.print("Tick: ");
+    ticknumber++;
+    Serial.print(ticknumber);
+    Serial.println();
 }
 
 void readData() {
@@ -87,7 +96,7 @@ void readData() {
     Serial.print(' ');
     Serial.print(payload3);
     Serial.println();
-    delay(32);
+    delay(1000);
 }
 
 void connect(int attemptNum) {
@@ -138,5 +147,6 @@ void search() {
     } else {
         Serial.println("Not found!");
     }
-    delay(32);
+    
+    delay(1000);
 }
